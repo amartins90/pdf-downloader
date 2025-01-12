@@ -1,6 +1,10 @@
 from dotenv import load_dotenv
 import os
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename="logs/scraper.log", encoding="utf-8", level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 class Downloader:
 
@@ -18,8 +22,8 @@ class Downloader:
         self.match_id = str(match_id)
 
         load_dotenv()
-        
-        print(f"Year: {year}, Competition ID: {competition_id}, Match ID: {match_id}")
+
+        logger.info(f"Starting download: Year: {year}, Competition ID: {competition_id}, Match ID: {match_id}") 
 
     def buildUrl(self):
         base_url = os.getenv("BASE_URL")
@@ -36,18 +40,27 @@ class Downloader:
 
     def downloadFile(self):
         financial_url, scoresheet_url = self.buildUrl()
-        # TODO create logs
+        financial_file = False
+        scoresheet_file = False
+
         if financial_url is not None:
-            if requests.options(financial_url).ok:
-                filename = self.match_id + "_f.pdf"
+            result = requests.get(financial_url)
+            if result.status_code == 200:
+                logger.info(f"URL {financial_url} is ok")
+                filename = "files/" + self.year + "_" + self.competition_id + "_" + self.match_id + "_f.pdf"
                 with open(filename, "wb") as f:
                     f.write(requests.get(financial_url).content)
+                    logger.info(f"File {filename} is done")
+                    financial_file = True
 
         if scoresheet_url is not None:
-            if requests.options(scoresheet_url).ok:
-                filename = self.match_id + "_s.pdf"
+            result = requests.get(scoresheet_url)
+            if result.status_code == 200:
+                logger.info(f"URL {scoresheet_url} is ok")
+                filename = "files/" + self.year + "_" + self.competition_id + "_" + self.match_id + "_s.pdf"
                 with open(filename, "wb") as f:
-                    f.write(requests.get(financial_url).content)
+                    f.write(requests.get(scoresheet_url).content)
+                    logger.info(f"File {filename} is done")
+                    scoresheet_file = True
 
-        return None
-
+        return financial_file, scoresheet_file
